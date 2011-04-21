@@ -5,7 +5,7 @@
 
 var Environment = function(parent) {
   this.parent = parent;
-  this.table = {'magic':5};
+  this.table = {};
   this.lookup = function(expr) {
     if (this.table[expr]) {
       return this.table[expr]
@@ -38,6 +38,11 @@ var Evaluator = function() {
       return env.lookup(expr);
     } else if (isAssignment(expr)) {
       return obj.eval_assignment(expr, env);
+    } else if (isApply(expr)) {
+      var first = expr.shift();
+      return obj.apply(first, expr)
+    } else {
+      return "Unknown operation";
     }
   };
   
@@ -49,7 +54,7 @@ var Evaluator = function() {
   }
 
   obj.apply = function(procedure, exprs) {
-
+      return "Applying " + procedure + " to " + exprs;
   };
 
 
@@ -57,16 +62,19 @@ var Evaluator = function() {
     return expr == "";
   }
   function isNumber(expr) {
-    return /^[0-9]+(\.[0-9]*)?$/.test(expr);
+    return !is_list(expr) && /^[0-9]+(\.[0-9]*)?$/.test(expr);
   }
   function isString(expr) {
-    return /^\".*\"$/.test(expr);
+    return !is_list(expr) && (/^\".*\"$/.test(expr));
   }
   function isVariable(expr) {
-    return /^[a-zA-Z]+$/.test(expr);
+    return !is_list(expr) && (/^[a-zA-Z]+$/.test(expr));
   }
   function isAssignment(expr) {
     return (is_list(expr) && expr[0] == "set!");
+  }
+  function isApply(expr) {
+    return (is_list(expr));
   }
 
   function first(str) {
