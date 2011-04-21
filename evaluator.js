@@ -5,14 +5,14 @@
 
 var Environment = function(parent) {
   this.parent = parent;
-  this.table = {'a':5};
+  this.table = {'magic':5};
   this.lookup = function(expr) {
     if (this.table[expr]) {
       return this.table[expr]
     } else if (this.parent) {
       return this.parent.lookup(expr);
     } else {
-      return false;
+      return "Variable Not Found: " + expr;
     }
   }
 }  
@@ -23,7 +23,7 @@ var Evaluator = function() {
   obj.env = new Environment(null);
   
   obj.eval = function(expr, env) {
-    
+
     //primitive
     if (isEmpty(expr)) {
       return false;
@@ -33,16 +33,19 @@ var Evaluator = function() {
       return expr;
     } else if (isVariable(expr)) {
       return env.lookup(expr);
+    } else if (isAssignment(expr)) {
+      return obj.eval_assignment(expr, env);
     }
   };
+  
+  obj.eval_assignment = function(expr, env) {
+    
+  }
 
   obj.apply = function(procedure, exprs) {
 
   };
-  
-  obj.parse = function(str) {
-    return str;
-  }
+
 
   function isEmpty(expr) {
     return expr == "";
@@ -56,14 +59,65 @@ var Evaluator = function() {
   function isVariable(expr) {
     return /^[a-zA-Z]+$/.test(expr);
   }
-  
-  
+
   function first(str) {
     return str.charAt(0)
   }
   function rest(str) {
-    return str.substr(1,str.length);
+    return str.substring(1,str.length-2);
   }
+
+
+  obj.parse = function(str) {
+    function parseString(substr) {
+      //lexer with state
+      function getToken() {
+        var tok = "";
+        while (substr.charAt(0) == " ") {
+          substr = substr.substring(1,substr.length);
+        }
+        if (substr.charAt(0) == "(" || substr.charAt(0) == ")") {
+          tok = substr.charAt(0);
+          substr = substr.substring(1,substr.length);
+        } else {
+          while (substr.length > 0 && substr.charAt(0) != " " && substr.charAt(0) != ")") {
+            tok += substr.charAt(0);
+            substr = substr.substring(1,substr.length);            
+          }
+        }
+        return tok;
+      }
+      //two parsing functions
+      function parseList() { //returns a list
+        var tok = "";
+        var list = [];
+        while ((tok = getToken()) != "") {
+          if (tok === "(") {
+            list.push(parseList());
+          } else if (tok === ")") {
+            return list;
+          } else {
+            list.push(tok);
+          }
+        }        
+      }
+      function parseSection() {
+        var tok = "";
+        while ((tok = getToken()) != "") {
+          if (tok === "(") {
+            return parseList();
+          } else {
+            return tok;
+          }
+        }        
+      }
+      res = parseSection();
+      return res;
+    }
+    
+    return parseString(str);
+  }  
+
   
   return obj;
 };
@@ -108,12 +162,12 @@ var Console = function(container_id, evaluator) {
           obj.eventInput(input); 
       });
     console_inpt.addEventListener('keydown', function(e) {
-      if (e.keyCode==38) {
+      if (e.keyCode==38) { //down arrow
         if (obj.buffer.length > obj.bufferCounter) {
           obj.bufferCounter+=1;
           this.value = obj.buffer[obj.buffer.length-obj.bufferCounter];
         }
-      } else if (e.keyCode==40) {
+      } else if (e.keyCode==40) { //up arrow
         if (obj.buffer.length > obj.bufferCounter-1 && obj.bufferCounter > 1) {
           obj.bufferCounter-=1;
           this.value = obj.buffer[obj.buffer.length-obj.bufferCounter];
