@@ -15,6 +15,9 @@ var Environment = function(parent) {
       return "Variable Not Found: " + expr;
     }
   }
+  this.set = function(name, value) {
+    this.table[name] = value;
+  }
 }  
 
 var Evaluator = function() {
@@ -39,7 +42,10 @@ var Evaluator = function() {
   };
   
   obj.eval_assignment = function(expr, env) {
-    
+    var name = expr[1];
+    var value = obj.eval(expr[2]);
+    env.set(name, value);
+    return value;
   }
 
   obj.apply = function(procedure, exprs) {
@@ -59,12 +65,18 @@ var Evaluator = function() {
   function isVariable(expr) {
     return /^[a-zA-Z]+$/.test(expr);
   }
+  function isAssignment(expr) {
+    return (is_list(expr) && expr[0] == "set!");
+  }
 
   function first(str) {
     return str.charAt(0)
   }
   function rest(str) {
     return str.substring(1,str.length-2);
+  }
+  function is_list(expr) {
+    return expr && typeof expr === 'object' && expr.constructor === Array;
   }
 
 
@@ -111,8 +123,7 @@ var Evaluator = function() {
           }
         }        
       }
-      res = parseSection();
-      return res;
+      return parseSection();
     }
     
     return parseString(str);
