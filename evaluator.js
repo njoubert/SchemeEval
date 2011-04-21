@@ -113,6 +113,14 @@ var Console = function(container_id, evaluator) {
           obj.bufferCounter+=1;
           this.value = obj.buffer[obj.buffer.length-obj.bufferCounter];
         }
+      } else if (e.keyCode==40) {
+        if (obj.buffer.length > obj.bufferCounter-1 && obj.bufferCounter > 1) {
+          obj.bufferCounter-=1;
+          this.value = obj.buffer[obj.buffer.length-obj.bufferCounter];
+        } else {
+          obj.bufferCounter=0;
+          this.value = "";
+        }
       } else if (e.keyCode==13) {
         obj.bufferCounter = 0;
       }
