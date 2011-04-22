@@ -19,7 +19,20 @@ var Environment = function(parent) {
   this.set = function(name, value) {
     this.table[name] = value;
   }
+  this.extend = function(formal_parameters, actual_parameters) {
+    var e = new Environment(this);
+    for (i = 0; i < formal_parameters.length; i++) {
+      e.table[formal_parameters[i]] = actual_parameters[i];
+    }
+    return e;
+  }
 }  
+
+var Procedure = function(parameters, body, env) {
+  this.parameters = parameters;
+  this.body = body;
+  this.env = env;
+}
 
 var Evaluator = function() {
   var obj = {};
@@ -30,7 +43,7 @@ var Evaluator = function() {
   function draw_env() {
     function text_for_env(env) {
       var s = "<div class='env_box'>"
-      s += JSON.stringify(env.table)
+      s += JSON.stringify(env.table);        
       for (i = 0; i < env.children.length; i++) {
         s += text_for_env(env.children[i]);
       }
@@ -55,9 +68,17 @@ var Evaluator = function() {
       return obj.eval_assignment(expr, env);
     } else if (isIf(expr)) {
       return obj.eval_if(expr, env);
+    } else if (isSimpleProc(expr)) {
+      return expr;
+    } else if (isLambda(expr)) {
+      expr.shift() //remove lambda
+      var param = expr[0];
+      expr.shift();
+      return new Procedure(param, expr, env);
     } else if (isApply(expr)) {
-      var first = expr.shift();
-      return obj.apply(first, expr, env)
+      var proc = obj.eval(expr.shift(), env);
+      var args = expr.map(function(e) { return obj.eval(e, env); });
+      return obj.apply(proc, args, env)
     } else {
       return "Unknown operation";
     }
@@ -81,12 +102,18 @@ var Evaluator = function() {
     return null;
   }
 
-  obj.apply = function(procedure, exprs, env) {
+  obj.apply = function(procedure, args, env) {
     if (isSimpleProc(procedure)) {
-      var args = exprs.map(function(e) { return obj.eval(e, env); });
-      return obj.applySimple(procedure, args);
+      var v = obj.applySimple(procedure, args); 
+      return v;
+    } else {
+      var e = env.extend(procedure.parameters, args);
+      var r = false;
+      for (i = 0; i < procedure.body.length; i++) {
+        r = obj.eval(procedure.body[i], e);
+      }
+      return r;
     }
-      return "Applying " + procedure + " to " + exprs;
   };
   
   obj.applySimple = function(procedure,args) {
@@ -116,7 +143,7 @@ var Evaluator = function() {
     return expr == "";
   }
   function isNumber(expr) {
-    return !is_list(expr) && /^[0-9]+(\.[0-9]*)?$/.test(expr);
+    return !is_list(expr) && (~isNaN(expr-0)) && /^[0-9]+(\.[0-9]*)?$/.test(expr);
   }
   function isString(expr) {
     return !is_list(expr) && (/^\".*\"$/.test(expr));
@@ -132,6 +159,9 @@ var Evaluator = function() {
   }
   function isIf(expr) {
     return (is_list(expr) && expr[0] == "if");
+  }
+  function isLambda(expr) {
+    return (is_list(expr) && expr[0] == "lambda" && expr.length > 2);
   }
   function isApply(expr) {
     return (is_list(expr));
@@ -153,6 +183,9 @@ var Evaluator = function() {
   }
   function is_list(expr) {
     return expr && typeof expr === 'object' && expr.constructor === Array;
+  }
+  function is_procedure(expr) {
+    return expr && typeof expr === 'object' && expr.constructor === Procedure;    
   }
 
 
