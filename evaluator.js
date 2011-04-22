@@ -6,13 +6,14 @@
 var Environment = function(parent) {
   this.parent = parent;
   this.table = {};
+  this.children = {};
   this.lookup = function(expr) {
     if (this.table[expr]) {
       return this.table[expr]
     } else if (this.parent) {
       return this.parent.lookup(expr);
     } else {
-      return "Variable Not Found: " + expr;
+      return null;
     }
   }
   this.set = function(name, value) {
@@ -24,6 +25,20 @@ var Evaluator = function() {
   var obj = {};
   
   obj.env = new Environment(null);
+  obj.env_div = "";  
+  
+  function draw_env() {
+    function text_for_env(env) {
+      var s = "<div class='env_box'>"
+      s += JSON.stringify(env.table)
+      for (i = 0; i < env.children.length; i++) {
+        s += text_for_env(env.children[i]);
+      }
+      s += "</div>"
+      return s;
+    }
+    obj.env_div.innerHTML = "" + text_for_env(obj.env) + "</div>";
+  }
   
   obj.eval = function(expr, env) {
     if (isEmpty(expr)) {
@@ -51,7 +66,9 @@ var Evaluator = function() {
   obj.eval_assignment = function(expr, env) {
     var name = expr[1];
     var value = obj.eval(expr[2], env);
-    env.set(name, value);
+    if (value != null)
+      env.set(name, value);
+    draw_env();
     return value;
   }
   obj.eval_if = function(expr, env) {
@@ -218,13 +235,16 @@ var Console = function(container_id, evaluator) {
       f += "<textarea id='"+name+"_output' style='width: 600px; height: 400px;'></textarea><br/>";
       f += "<input id='"+name+"_input' style='width: 600px' autocomplete=off onfocus='this.value = this.value;'/>";
       f += "</form>";
+      f += "<div class='console_env'><h4>Environment</h4><div id='"+name+"_env'></div></div>"
       return f;      
     }
     container.innerHTML = getHTML(name);
     console_form = document.getElementById(name+"_form");
     console_inpt = document.getElementById(name+"_input");
     console_outp = document.getElementById(name+"_output");
-
+    
+    evaluator.env_div = document.getElementById(name+"_env");
+    
     console_form.addEventListener('submit', function() { 
         var input = this.childNodes[2].value;
         this.childNodes[2].value = "";
