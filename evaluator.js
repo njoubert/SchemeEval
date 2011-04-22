@@ -32,10 +32,14 @@ var Evaluator = function() {
       return parseFloat(expr);
     } else if (isString(expr)) {
       return expr;
+    } else if (isBoolean(expr)) {
+      return !(expr == "false");
     } else if (isVariable(expr)) {
       return env.lookup(expr);
     } else if (isAssignment(expr)) {
       return obj.eval_assignment(expr, env);
+    } else if (isIf(expr)) {
+      return obj.eval_if(expr, env);
     } else if (isApply(expr)) {
       var first = expr.shift();
       return obj.apply(first, expr, env)
@@ -46,9 +50,18 @@ var Evaluator = function() {
   
   obj.eval_assignment = function(expr, env) {
     var name = expr[1];
-    var value = obj.eval(expr[2]);
+    var value = obj.eval(expr[2], env);
     env.set(name, value);
     return value;
+  }
+  obj.eval_if = function(expr, env) {
+    var pred = obj.eval(expr[1], env);
+    if (pred) {
+      return obj.eval(expr[2], env);
+    } else if (expr.length == 4) {
+      return obj.eval(expr[3], env);
+    }
+    return null;
   }
 
   obj.apply = function(procedure, exprs, env) {
@@ -72,6 +85,12 @@ var Evaluator = function() {
     if (procedure == "/") {
       return args.reduce(function(a,b) {return a/b;});
     }
+    if (procedure == "=") {
+      return args[0] === args[1];
+    }
+    if (procedure == "!") {
+      return !args[0];
+    }
 
   }
 
@@ -85,11 +104,17 @@ var Evaluator = function() {
   function isString(expr) {
     return !is_list(expr) && (/^\".*\"$/.test(expr));
   }
+  function isBoolean(expr) {
+    return expr == "false" || expr == "true";
+  }
   function isVariable(expr) {
     return !is_list(expr) && (/^[a-zA-Z]+$/.test(expr));
   }
   function isAssignment(expr) {
     return (is_list(expr) && expr[0] == "set!");
+  }
+  function isIf(expr) {
+    return (is_list(expr) && expr[0] == "if");
   }
   function isApply(expr) {
     return (is_list(expr));
@@ -98,7 +123,9 @@ var Evaluator = function() {
     return (procedure === "+" ||
             procedure === "-" ||
             procedure === "*" ||
-            procedure === "/");
+            procedure === "/" ||
+            procedure === "!" ||
+            procedure === "=");
   }
 
   function first(str) {
