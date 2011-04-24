@@ -6,7 +6,7 @@
 var Environment = function(parent) {
   this.parent = parent;
   this.table = {};
-  this.children = {};
+  this.children = [];
   this.lookup = function(expr) {
     if (this.table[expr]) {
       return this.table[expr]
@@ -15,6 +15,9 @@ var Environment = function(parent) {
     } else {
       return null;
     }
+  }
+  this.contains = function(name) {
+    return this.table[name] != undefined
   }
   this.set = function(name, value) {
     this.table[name] = value;
@@ -43,7 +46,13 @@ var Evaluator = function() {
   function draw_env() {
     function text_for_env(env) {
       var s = "<div class='env_box'>"
-      s += JSON.stringify(env.table);        
+      for (var p in env.table) {
+        if (is_procedure(env.table[p])) {
+          s += "proc " + p + "<br/>";
+        } else {
+          s += p + ": " + env.table[p] + "<br/>";
+        }
+      }
       for (i = 0; i < env.children.length; i++) {
         s += text_for_env(env.children[i]);
       }
@@ -75,6 +84,8 @@ var Evaluator = function() {
       var param = expr[0];
       expr.shift();
       return new Procedure(param, expr, env);
+    } else if (isDefine(expr)) {
+      return obj.eval_define(expr, env);
     } else if (isApply(expr)) {
       var proc = obj.eval(expr.shift(), env);
       var args = expr.map(function(e) { return obj.eval(e, env); });
@@ -84,11 +95,44 @@ var Evaluator = function() {
     }
   };
   
-  obj.eval_assignment = function(expr, env) {
+  obj.eval_assignment = function(expr, env) {    
     var name = expr[1];
     var value = obj.eval(expr[2], env);
-    if (value != null)
+    if (value != null) {
+      e = env;
+      found = false;
+      while (e != null) {
+        if (e.contains(name)) {
+          e.set(name, value);
+          found = true;
+          break;
+        } else {
+          e = e.parent;
+        }
+      }
+      if (!found) {
+        env.set(name, value);        
+      }
+    }
+    draw_env();
+    return value;
+  }
+  obj.eval_define = function(expr, env) {
+    var value;
+    if (is_list(expr[1])) {
+      expr.shift();
+      var name = expr[0].shift();
+      var param = expr[0];
+      expr.shift();
+      var value = new Procedure(param, expr, env);
       env.set(name, value);
+    } else {
+      var name = expr[1];
+      var value = obj.eval(expr[2], env);
+      if (value != null) {
+        env.set(name, value);
+      }
+    }
     draw_env();
     return value;
   }
@@ -162,6 +206,9 @@ var Evaluator = function() {
   }
   function isLambda(expr) {
     return (is_list(expr) && expr[0] == "lambda" && expr.length > 2);
+  }
+  function isDefine(expr) {
+    return (is_list(expr) && expr[0] == "define" && expr.length > 2);
   }
   function isApply(expr) {
     return (is_list(expr));
