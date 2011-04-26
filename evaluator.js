@@ -77,19 +77,22 @@ var Evaluator = function() {
       return obj.eval_assignment(expr, env);
     } else if (isIf(expr)) {
       return obj.eval_if(expr, env);
-    } else if (isSimpleProc(expr)) {
-      return expr;
     } else if (isLambda(expr)) {
-      expr.shift() //remove lambda
-      var param = expr[0];
-      expr.shift();
-      return new Procedure(param, expr, env);
+      var param = expr[1];
+      var exprs = expr.slice(2);
+      return new Procedure(param, exprs, env);
     } else if (isDefine(expr)) {
       return obj.eval_define(expr, env);
     } else if (isApply(expr)) {
-      var proc = obj.eval(expr.shift(), env);
-      var args = expr.map(function(e) { return obj.eval(e, env); });
-      return obj.apply(proc, args, env)
+      var p = expr[0];
+      var exprs = expr.slice(1);
+      var args = exprs.map(function(e) { return obj.eval(e, env); });
+      if (isSimpleProc(p)) {
+        return obj.applySimple(p, args)
+      } else {
+        var proc = obj.eval(p, env);
+        return obj.apply(proc, args, env)
+      }
     } else {
       return "Unknown operation";
     }
@@ -161,22 +164,23 @@ var Evaluator = function() {
   };
   
   obj.applySimple = function(procedure,args) {
-    if (procedure == "+") {
+    if (procedure === "+") {
       return args.reduce(function(a,b) {return a+b;});
     }
-    if (procedure == "-") {
+    if (procedure === "-") {
       return args.reduce(function(a,b) {return a-b;});
     }
-    if (procedure == "*") {
+    if (procedure === "*") {
       return args.reduce(function(a,b) {return a*b;});
     }
-    if (procedure == "/") {
+    if (procedure === "/") {
       return args.reduce(function(a,b) {return a/b;});
     }
-    if (procedure == "=") {
+    if (procedure === "=") {
+      alert("Equality...: " + args[0] +  "==" + args[1]);
       return args[0] === args[1];
     }
-    if (procedure == "!") {
+    if (procedure === "!") {
       return !args[0];
     }
 
@@ -312,7 +316,7 @@ var Console = function(container_id, evaluator) {
     function getHTML(name) {
       var f = "";
       f += "<form id='"+name+"_form' onSubmit='javascript:return false;'>";
-      f += "<textarea id='"+name+"_output' style='width: 600px; height: 400px;'></textarea><br/>";
+      f += "<textarea id='"+name+"_output' style='width: 600px; height: 200px;'></textarea><br/>";
       f += "<input id='"+name+"_input' style='width: 600px' autocomplete=off onfocus='this.value = this.value;'/>";
       f += "</form>";
       f += "<div class='console_env'><h4>Environment</h4><div id='"+name+"_env'></div></div>"
