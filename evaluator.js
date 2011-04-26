@@ -87,6 +87,7 @@ var Evaluator = function() {
       var p = expr[0];
       var exprs = expr.slice(1);
       var args = exprs.map(function(e) { return obj.eval(e, env); });
+      alert("args: " + args);
       if (isSimpleProc(p)) {
         return obj.applySimple(p, args)
       } else {
