@@ -27,6 +27,7 @@ var Environment = function(parent) {
     for (i = 0; i < formal_parameters.length; i++) {
       e.table[formal_parameters[i]] = actual_parameters[i];
     }
+    this.children.push(e);
     return e;
   }
 }  
@@ -212,7 +213,7 @@ var Evaluator = function() {
     return expr == "#f" || expr == "#t";
   }
   function isVariable(expr) {
-    return !is_list(expr) && (/^[a-zA-Z]+$/.test(expr));
+    return !is_list(expr) && (/^[a-zA-Z][a-zA-Z!$%&*+-./:<=>?@^_~]*$/.test(expr));
   }
   function isAssignment(expr) {
     return (is_list(expr) && expr[0] == "set!");
@@ -386,6 +387,7 @@ var console;
 
 window.onload = function() {
   evaluator = Evaluator();
+  evaluator.parse("()")
   console = Console('console01', evaluator);
 };
 
