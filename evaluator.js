@@ -251,7 +251,10 @@ var Evaluator = function() {
     return expr && typeof expr === 'object' && expr.constructor === Procedure;    
   }
 
-
+  
+  parsedSoFar = "";
+  numParens = 0;
+  
   obj.parse = function(str) {
     function parseString(substr) {
       //lexer with state
@@ -277,8 +280,10 @@ var Evaluator = function() {
         var list = [];
         while ((tok = getToken()) != "") {
           if (tok === "(") {
+            numParens += 1;
             list.push(parseList());
           } else if (tok === ")") {
+            numParens -= 1;
             return list;
           } else {
             list.push(tok);
@@ -289,6 +294,7 @@ var Evaluator = function() {
         var tok = "";
         while ((tok = getToken()) != "") {
           if (tok === "(") {
+            numParens += 1
             return parseList();
           } else {
             return tok;
@@ -297,7 +303,6 @@ var Evaluator = function() {
       }
       return parseSection();
     }
-    
     return parseString(str);
   }  
 
@@ -320,7 +325,10 @@ var Console = function(container_id, evaluator) {
   obj.eventInput = function(str) {
     obj.buffer.push(str);
     console_outp.innerHTML += "> " + str + "\n";
-    console_outp.innerHTML += evaluator.eval(evaluator.parse(str), evaluator.env) + "\n";
+    var parsed = evaluator.parse(str)
+    if (parsed != null) {
+      console_outp.innerHTML += evaluator.eval(parsed, evaluator.env) + "\n";      
+    }
   };
   
   //private functions
