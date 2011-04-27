@@ -8,7 +8,7 @@ var Environment = function(parent) {
   this.table = {};
   this.children = [];
   this.lookup = function(expr) {
-    if (this.table[expr]) {
+    if (this.contains(expr)) {
       return this.table[expr]
     } else if (this.parent) {
       return this.parent.lookup(expr);
@@ -70,7 +70,11 @@ var Evaluator = function() {
     } else if (isString(expr)) {
       return expr;
     } else if (isBoolean(expr)) {
-      return !(expr == "false");
+      if (expr === "#f") {
+        return "#f"
+      } else {
+        return "#t"
+      }
     } else if (isVariable(expr)) {
       return env.lookup(expr);
     } else if (isAssignment(expr)) {
@@ -87,7 +91,6 @@ var Evaluator = function() {
       var p = expr[0];
       var exprs = expr.slice(1);
       var args = exprs.map(function(e) { return obj.eval(e, env); });
-      alert("args: " + args);
       if (isSimpleProc(p)) {
         return obj.applySimple(p, args)
       } else {
@@ -142,7 +145,7 @@ var Evaluator = function() {
   }
   obj.eval_if = function(expr, env) {
     var pred = obj.eval(expr[1], env);
-    if (pred) {
+    if (!(pred === "#f")) {
       return obj.eval(expr[2], env);
     } else if (expr.length == 4) {
       return obj.eval(expr[3], env);
@@ -178,11 +181,19 @@ var Evaluator = function() {
       return args.reduce(function(a,b) {return a/b;});
     }
     if (procedure === "=") {
-      alert("Equality...: " + args[0] +  "==" + args[1]);
-      return args[0] === args[1];
+      if (args[0] === args[1]) {
+        return "#t"
+      } else {
+        return "#f";
+      }
+      return ;
     }
     if (procedure === "!") {
-      return !args[0];
+      if (args[0] === "#f") {
+        return "#t"
+      } else {
+        return "#f"
+      }
     }
 
   }
@@ -198,7 +209,7 @@ var Evaluator = function() {
     return !is_list(expr) && (/^\".*\"$/.test(expr));
   }
   function isBoolean(expr) {
-    return expr == "false" || expr == "true";
+    return expr == "#f" || expr == "#t";
   }
   function isVariable(expr) {
     return !is_list(expr) && (/^[a-zA-Z]+$/.test(expr));
@@ -317,7 +328,7 @@ var Console = function(container_id, evaluator) {
     function getHTML(name) {
       var f = "";
       f += "<form id='"+name+"_form' onSubmit='javascript:return false;'>";
-      f += "<textarea id='"+name+"_output' style='width: 600px; height: 200px;'></textarea><br/>";
+      f += "<textarea id='"+name+"_output' style='width: 600px; height: 400px;'></textarea><br/>";
       f += "<input id='"+name+"_input' style='width: 600px' autocomplete=off onfocus='this.value = this.value;'/>";
       f += "</form>";
       f += "<div class='console_env'><h4>Environment</h4><div id='"+name+"_env'></div></div>"
